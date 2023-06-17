@@ -17,12 +17,7 @@ contract SourceNFT is ERC721, ERC4906, Ownable {
     uint256 private MAX_AL_SUPPLY = 500;
 
     mapping(uint256 => uint256) private myNumber;
-    mapping(address => bool) private allowedMinters;
-    uint256 private numOfAllowedMinters;
     bool private mintable;
-    bool private publicMint;
-    uint256 private loser;
-    uint256 private winner;
 
     constructor() ERC721("SourceNFT", "SNFT") {}
 
@@ -145,9 +140,9 @@ contract SourceNFT is ERC721, ERC4906, Ownable {
 
         string memory meta = string(
             abi.encodePacked(
-                '{"name": "Changing Number NFT #',
+                '{"name": "Source NFT #',
                 Strings.toString(_tokenId),
-                '","description": "Changing Number NFT amazing",',
+                '","description": "Source NFT amazing",',
                 '"attributes": [{"trait_type":"Number","value":"',
                 Strings.toString(myNumber[_tokenId]),
                 '"}],',
