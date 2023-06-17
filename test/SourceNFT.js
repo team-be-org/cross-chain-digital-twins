@@ -5,14 +5,40 @@ var fs = require("fs");
 describe("SourceNFT", function () {
   let token;
   let token721;
+  let token721_2;
   let _name="SourceNFT";
   let _symbol="SNFT";
+  let chainId = 1337; //1337 is hardhat chainId
   let a1, a2, a3,a4, a5;
 
   beforeEach(async function () {
-    token = await ethers.getContractFactory("SourceNFT");
     [owner, a1, a2, a3, a4, a5] = await ethers.getSigners();
-    token721 = await token.deploy();
+
+    // deploy endpoint mock
+    let _endpoint = await ethers.getContractFactory("LZEndpointMock");
+    let endpoint = await _endpoint.deploy(chainId);
+
+    // deploy metadata contract
+    let _meta = await ethers.getContractFactory("SourceNFTMetadata");
+    let meta = await _meta.deploy();
+
+    // deploy Source NFT contract
+    token = await ethers.getContractFactory("SourceNFT");
+    token721 = await token.deploy(endpoint.address, meta.address, chainId); 
+    token721_2 = await token.deploy(endpoint.address, meta.address, chainId); 
+    
+     // set each contracts source address so it can send to each other
+    endpoint.setDestLzEndpoint(token721.address, endpoint.address);
+    endpoint.setDestLzEndpoint(token721_2.address, endpoint.address);
+
+    token721.setTrustedRemote(
+      chainId,
+      ethers.utils.solidityPack(["address", "address"], [token721.address, token721_2.address])
+    );
+    token721_2.setTrustedRemote(
+      chainId,
+      ethers.utils.solidityPack(["address", "address"], [token721_2.address, token721.address])
+    );
   });
 
   describe("Deployment", function () {
@@ -50,7 +76,7 @@ describe("SourceNFT", function () {
     it("Should output tokeURI", async function () {
       await token721.setMintable(true);
       await token721.connect(a1).mint();
-      await token721.connect(a1).addNumber(1);
+      await token721.connect(a1).addNumber(1, { value: ethers.utils.parseEther("0.5") });
 
       let tokenURI = await token721.tokenURI(1);
       let metaData = Buffer.from(tokenURI.split(",")[1], 'base64').toString('ascii');
@@ -66,7 +92,7 @@ describe("SourceNFT", function () {
       fs.writeFileSync("tmp/test2.svg", image);
 
       for (let i=0; i<8; i++) {
-        await token721.connect(a1).addNumber(1);
+        await token721.connect(a1).addNumber(1, { value: ethers.utils.parseEther("0.5") });
         tokenURI = await token721.tokenURI(1);
         metaData = Buffer.from(tokenURI.split(",")[1], 'base64').toString('ascii');
         metaData = JSON.parse(metaData);
@@ -94,8 +120,8 @@ describe("SourceNFT", function () {
       await token721.setMintable(true);
       await token721.connect(a1).mint();
       await token721.connect(a2).mint();
-      await expect(token721.addNumber(1)).emit(token721, "MetadataUpdate").withArgs(1);
-      await expect(token721.decreaseNumber(1)).emit(token721, "MetadataUpdate").withArgs(1);
+      await expect(token721.addNumber(1, { value: ethers.utils.parseEther("0.5") })).emit(token721, "MetadataUpdate").withArgs(1);
+      await expect(token721.decreaseNumber(1, { value: ethers.utils.parseEther("0.5") })).emit(token721, "MetadataUpdate").withArgs(1);
     });
 
     //revert tests
@@ -224,20 +250,20 @@ describe("SourceNFT", function () {
   it("Should work addNumber revet test", async function () {
     await token721.setMintable(true);
     await token721.connect(a1).mint();
-    await expect(token721.connect(a1).addNumber(2)).to.be.revertedWith("tokenId must be exist");
+    await expect(token721.connect(a1).addNumber(2, { value: ethers.utils.parseEther("0.5") })).to.be.revertedWith("tokenId must be exist");
     for(let i = 0; i < 9; i++) {
-      await token721.connect(a1).addNumber(1);
+      await token721.connect(a1).addNumber(1, { value: ethers.utils.parseEther("0.5") });
     }
-    await expect(token721.connect(a1).addNumber(1)).to.be.revertedWith("Number is already 10");
+    await expect(token721.connect(a1).addNumber(1, { value: ethers.utils.parseEther("0.5") })).to.be.revertedWith("Number is already 10");
   });
 
   // decreaseNumber revet test tokenId must be exist and  Number is already 0
   it("Should work decreaseNumber revet test", async function () {
     await token721.setMintable(true);
     await token721.connect(a1).mint();
-    await expect(token721.connect(a1).decreaseNumber(2)).to.be.revertedWith("tokenId must be exist");
-    await token721.connect(a1).decreaseNumber(1);
-    await expect(token721.connect(a1).decreaseNumber(1)).to.be.revertedWith("Number is already 0");
+    await expect(token721.connect(a1).decreaseNumber(2, { value: ethers.utils.parseEther("0.5") })).to.be.revertedWith("tokenId must be exist");
+    await token721.connect(a1).decreaseNumber(1, { value: ethers.utils.parseEther("0.5") });
+    await expect(token721.connect(a1).decreaseNumber(1, { value: ethers.utils.parseEther("0.5") })).to.be.revertedWith("Number is already 0");
   });
 
   //token URI require existing token
