@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
+pragma abicoder v2;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
@@ -8,18 +9,23 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "base64-sol/base64.sol";
 import "hardhat/console.sol";
 import "./ERC4906.sol";
+import "./lzApp/NonblockingLzApp.sol";
 
-contract SourceNFT is ERC721, ERC4906, Ownable {
+abstract contract SourceNFT is ERC721, ERC4906, Ownable, NonblockingLzApp {
     using Counters for Counters.Counter;
     Counters.Counter private currentTokenId;
 
     uint256 private MAX_SUPPLY = 1000;
     uint256 private MAX_AL_SUPPLY = 500;
+    uint16 DST_CHAIN_ID = 10121; //etheream goerli chain id
 
     mapping(uint256 => uint256) private myNumber;
     bool private mintable;
 
-    constructor() ERC721("SourceNFT", "SNFT") {}
+    constructor()
+        ERC721("SourceNFT", "SNFT")
+        NonblockingLzApp(0x93f54D755A063cE7bB9e6Ac47Eccc8e33411d706) //avalanch fuji
+    {}
 
     function mint() public payable returns (uint256) {
         require(mintable, "Mint is not Started");
@@ -44,22 +50,41 @@ contract SourceNFT is ERC721, ERC4906, Ownable {
         return newItemId;
     }
 
+    /// @dev sendCurrentNumber
+    /// @param tokenId token id
+    function sendCurrentNumner(uint256 tokenId) internal {
+        _lzSend(
+            DST_CHAIN_ID,
+            abi.encodeWithSignature("number", tokenId, myNumber[tokenId]),
+            payable(msg.sender),
+            address(0x0),
+            bytes(""),
+            msg.value
+        );
+    }
+
     /// @dev add Number metadata for specific token id
     /// @param _tokenId token id
-    function addNumber(uint256 _tokenId) public {
+    function addNumber(uint256 _tokenId) public payable {
         require(_exists(_tokenId), "tokenId must be exist");
         require(myNumber[_tokenId] < 10, "Number is already 10");
         myNumber[_tokenId] += 1;
         emit MetadataUpdate(_tokenId);
+
+        //send info to other chain
+        sendCurrentNumner(_tokenId);
     }
 
     /// @dev decrease Number metadata for specific token id
     /// @param _tokenId token id
-    function decreaseNumber(uint256 _tokenId) public {
+    function decreaseNumber(uint256 _tokenId) public payable {
         require(_exists(_tokenId), "tokenId must be exist");
         require(myNumber[_tokenId] > 0, "Number is already 0");
         myNumber[_tokenId] -= 1;
         emit MetadataUpdate(_tokenId);
+
+        //send info to other chain
+        sendCurrentNumner(_tokenId);
     }
 
     ///@dev get number metadata of Token Id
