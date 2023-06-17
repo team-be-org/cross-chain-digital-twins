@@ -1,0 +1,21 @@
+{
+  "name": "cross-chain-digital-twins",
+  "version": "1.0.0",
+  "description": "Elemental technology verification of digital twin technology using cross-chain",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^3.0.0",
+    "@nomiclabs/hardhat-etherscan": "^3.1.7",
+    "dotenv": "^16.3.0",
+    "hardhat": "^2.15.0"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^4.9.2",
+    "base64-sol": "^1.1.0"
+  }
+}
