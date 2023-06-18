@@ -25,10 +25,11 @@ describe("SourceNFT", function () {
     // deploy Source NFT contract
     let token = await ethers.getContractFactory("SourceNFT");
     token721 = await token.deploy(endpoint.address, meta.address, chainId); 
+
+    // deploy Twin NFT contract
     let twin = await ethers.getContractFactory("TwinNFT");
     twin721 = await twin.deploy(endpoint.address, meta.address, chainId); 
 
-    endpoint.setDestLzEndpoint(token721.address, endpoint.address);
     endpoint.setDestLzEndpoint(twin721.address, endpoint.address);
 
     token721.setTrustedRemote(

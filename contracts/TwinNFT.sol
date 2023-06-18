@@ -44,7 +44,7 @@ contract TwinNFT is ERC721, ERC4906, Ownable, NonblockingLzApp {
             mint(addressRcv, tokenIdRcv);
             setNumber(tokenIdRcv, numberRcv);
         } else if (ownerOf(tokenIdRcv) != addressRcv) {
-            ownerTransfer(ownerOf(tokenIdRcv), addressRcv, tokenIdRcv);
+            twinsTransfer(ownerOf(tokenIdRcv), addressRcv, tokenIdRcv);
             setNumber(tokenIdRcv, numberRcv);
         } else {
             setNumber(tokenIdRcv, numberRcv);
@@ -72,10 +72,6 @@ contract TwinNFT is ERC721, ERC4906, Ownable, NonblockingLzApp {
         return myNumber[_tokenId];
     }
 
-    function ownerTransfer(address from, address to, uint256 tokenId) internal {
-        _transfer(from, to, tokenId);
-    }
-
     /// @dev get metadata for specific token id
     /// @param _tokenId token id
     function tokenURI(
@@ -83,6 +79,46 @@ contract TwinNFT is ERC721, ERC4906, Ownable, NonblockingLzApp {
     ) public view override returns (string memory) {
         require(_exists(_tokenId), "tokenId must be exist");
         return sourceNFTMetadata.getMetadata(myNumber[_tokenId], _tokenId);
+    }
+
+    /// limited transfer function
+
+    /// @dev transfer function for twins
+    /// @param from address of sender
+    /// @param to address of receiver
+    /// @param tokenId token id
+    /// only allow transfer with refrection of Source NFT as digital twins
+    /// standard transfer function is disabled
+    function twinsTransfer(address from, address to, uint256 tokenId) internal {
+        _transfer(from, to, tokenId);
+    }
+
+    function transferFrom(
+        address from,
+        address to,
+        uint256 tokenId
+    ) public override {
+        require(false, "This a SBT. It cannot be transferred.");
+        super.transferFrom(from, to, tokenId);
+    }
+
+    function safeTransferFrom(
+        address from,
+        address to,
+        uint256 tokenId
+    ) public override {
+        require(false, "This a SBT. It cannot be transferred.");
+        super.safeTransferFrom(from, to, tokenId);
+    }
+
+    function safeTransferFrom(
+        address from,
+        address to,
+        uint256 tokenId,
+        bytes memory data
+    ) public override {
+        require(false, "This a SBT. It cannot be transferred.");
+        super.safeTransferFrom(from, to, tokenId, data);
     }
 
     // administrator
