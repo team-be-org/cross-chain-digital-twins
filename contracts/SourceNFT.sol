@@ -66,7 +66,6 @@ contract SourceNFT is ERC721, ERC4906, Ownable, NonblockingLzApp {
         uint256 newItemId = currentTokenId.current();
         _safeMint(msg.sender, newItemId);
         myNumber[newItemId] = 1;
-        //sendChangeInfo(newItemId);
         return newItemId;
     }
 

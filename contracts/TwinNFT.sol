@@ -39,26 +39,30 @@ contract TwinNFT is ERC721, ERC4906, Ownable, NonblockingLzApp {
             _payload,
             (uint256, uint256, address)
         );
-        console.log(tokenIdRcv, numberRcv, addressRcv);
 
         if (!_exists(tokenIdRcv)) {
-            _mint(addressRcv, tokenIdRcv);
+            mint(addressRcv, tokenIdRcv);
+            setNumber(tokenIdRcv, numberRcv);
         } else if (ownerOf(tokenIdRcv) != addressRcv) {
-            transferFrom(ownerOf(tokenIdRcv), addressRcv, tokenIdRcv);
+            ownerTransfer(ownerOf(tokenIdRcv), addressRcv, tokenIdRcv);
+            setNumber(tokenIdRcv, numberRcv);
         } else {
-            myNumber[tokenIdRcv] = numberRcv;
+            setNumber(tokenIdRcv, numberRcv);
         }
     }
 
-    function mint(uint256 newItemId) public payable returns (uint256) {
-        _mint(msg.sender, newItemId);
+    function mint(
+        address ownerAddress,
+        uint256 newItemId
+    ) public payable returns (uint256) {
+        _mint(ownerAddress, newItemId);
         myNumber[newItemId] = 1;
         return newItemId;
     }
 
     /// @dev add Number metadata for specific token id
     /// @param _tokenId token id
-    function setNumber(uint256 _tokenId, uint256 newNumber) public payable {
+    function setNumber(uint256 _tokenId, uint256 newNumber) internal {
         myNumber[_tokenId] = newNumber;
         emit MetadataUpdate(_tokenId);
     }
@@ -68,12 +72,8 @@ contract TwinNFT is ERC721, ERC4906, Ownable, NonblockingLzApp {
         return myNumber[_tokenId];
     }
 
-    function transferFrom(
-        address from,
-        address to,
-        uint256 tokenId
-    ) public override {
-        super.transferFrom(from, to, tokenId);
+    function ownerTransfer(address from, address to, uint256 tokenId) internal {
+        _transfer(from, to, tokenId);
     }
 
     /// @dev get metadata for specific token id
