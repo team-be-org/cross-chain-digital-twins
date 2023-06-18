@@ -3,9 +3,8 @@ const { expect } = require("chai");
 var fs = require("fs");
 
 describe("SourceNFT", function () {
-  let token;
   let token721;
-  let token721_2;
+  let twin721;
   let _name="SourceNFT";
   let _symbol="SNFT";
   let chainId = 1337; //1337 is hardhat chainId
@@ -23,21 +22,21 @@ describe("SourceNFT", function () {
     let meta = await _meta.deploy();
 
     // deploy Source NFT contract
-    token = await ethers.getContractFactory("SourceNFT");
+    let token = await ethers.getContractFactory("SourceNFT");
     token721 = await token.deploy(endpoint.address, meta.address, chainId); 
-    token721_2 = await token.deploy(endpoint.address, meta.address, chainId); 
-    
-     // set each contracts source address so it can send to each other
+    let twin = await ethers.getContractFactory("TwinNFT");
+    twin721 = await twin.deploy(endpoint.address, meta.address, chainId); 
+
     endpoint.setDestLzEndpoint(token721.address, endpoint.address);
-    endpoint.setDestLzEndpoint(token721_2.address, endpoint.address);
+    endpoint.setDestLzEndpoint(twin721.address, endpoint.address);
 
     token721.setTrustedRemote(
       chainId,
-      ethers.utils.solidityPack(["address", "address"], [token721.address, token721_2.address])
+      ethers.utils.solidityPack(["address", "address"], [twin721.address, token721.address])
     );
-    token721_2.setTrustedRemote(
+    twin721.setTrustedRemote(
       chainId,
-      ethers.utils.solidityPack(["address", "address"], [token721_2.address, token721.address])
+      ethers.utils.solidityPack(["address", "address"], [token721.address, twin721.address])
     );
   });
 
@@ -50,14 +49,14 @@ describe("SourceNFT", function () {
 
     it("Should mint a token by account1", async function () {
       await token721.setMintable(true);
-      await token721.connect(a1).mint();
+      await token721.connect(a1).mint({ value: ethers.utils.parseEther("0.5") });
       expect(await token721.ownerOf(1)).to.equal(a1.address);
       expect((await token721.balanceOf(a1.address))).to.equal(1);    
     });
 
     it("Should output tokeURI", async function () {
       await token721.setMintable(true);
-      await token721.connect(a1).mint();
+      await token721.connect(a1).mint({ value: ethers.utils.parseEther("0.5") });
 
       let tokenURI = await token721.tokenURI(1);
       let metaData = Buffer.from(tokenURI.split(",")[1], 'base64').toString('ascii');
@@ -75,7 +74,7 @@ describe("SourceNFT", function () {
 
     it("Should output tokeURI", async function () {
       await token721.setMintable(true);
-      await token721.connect(a1).mint();
+      await token721.connect(a1).mint({ value: ethers.utils.parseEther("0.5") });
       await token721.connect(a1).addNumber(1, { value: ethers.utils.parseEther("0.5") });
 
       let tokenURI = await token721.tokenURI(1);
@@ -118,8 +117,8 @@ describe("SourceNFT", function () {
     //ERC4906 related
     it("emits MetadataUpdate event at ", async function () {
       await token721.setMintable(true);
-      await token721.connect(a1).mint();
-      await token721.connect(a2).mint();
+      await token721.connect(a1).mint({ value: ethers.utils.parseEther("0.5") });
+      await token721.connect(a2).mint({ value: ethers.utils.parseEther("0.5") });
       await expect(token721.addNumber(1, { value: ethers.utils.parseEther("0.5") })).emit(token721, "MetadataUpdate").withArgs(1);
       await expect(token721.decreaseNumber(1, { value: ethers.utils.parseEther("0.5") })).emit(token721, "MetadataUpdate").withArgs(1);
     });
@@ -133,6 +132,7 @@ describe("SourceNFT", function () {
       await token721.setMintable(true);
       await token721.connect(a1).mint({value: ethers.utils.parseEther("1", "ether")});
       const balance = await ethers.provider.getBalance(token721.address);
+      console.log("balance:", balance.toString());
       expect(balance).to.equal(ethers.utils.parseEther("1", "ether"));
     });
 
@@ -150,10 +150,10 @@ describe("SourceNFT", function () {
   // test transfer nft
   it("Should work transfer nft", async function () {
     await token721.setMintable(true);
-    await token721.connect(a1).mint();
-    await token721.connect(a2).mint();
-    await token721.connect(a3).mint();
-    await token721.connect(a4).mint();
+    await token721.connect(a1).mint({ value: ethers.utils.parseEther("0.5") });
+    await token721.connect(a2).mint({ value: ethers.utils.parseEther("0.5") });
+    await token721.connect(a3).mint({ value: ethers.utils.parseEther("0.5") });
+    await token721.connect(a4).mint({ value: ethers.utils.parseEther("0.5") });
     await token721.connect(a1).transferFrom(a1.address, a2.address, 1);
     await token721.connect(a2).transferFrom(a2.address, a3.address, 2);
     await token721.connect(a3).transferFrom(a3.address, a4.address, 3);
@@ -163,10 +163,10 @@ describe("SourceNFT", function () {
   // test setApprovedForAll
   it("Should work setApprovedForAll", async function () {
     await token721.setMintable(true);
-    await token721.connect(a1).mint();
-    await token721.connect(a2).mint();
-    await token721.connect(a3).mint();
-    await token721.connect(a4).mint();
+    await token721.connect(a1).mint({ value: ethers.utils.parseEther("0.5") });
+    await token721.connect(a2).mint({ value: ethers.utils.parseEther("0.5") });
+    await token721.connect(a3).mint({ value: ethers.utils.parseEther("0.5") });
+    await token721.connect(a4).mint({ value: ethers.utils.parseEther("0.5") });
     await token721.connect(a1).setApprovalForAll(a2.address, true);
     await token721.connect(a2).setApprovalForAll(a3.address, true);
     await token721.connect(a3).setApprovalForAll(a4.address, true);
@@ -176,10 +176,10 @@ describe("SourceNFT", function () {
   //test setApprove
   it("Should work setApprove", async function () {
     await token721.setMintable(true);
-    await token721.connect(a1).mint();
-    await token721.connect(a2).mint();
-    await token721.connect(a3).mint();
-    await token721.connect(a4).mint();
+    await token721.connect(a1).mint({ value: ethers.utils.parseEther("0.5") });
+    await token721.connect(a2).mint({ value: ethers.utils.parseEther("0.5") });
+    await token721.connect(a3).mint({ value: ethers.utils.parseEther("0.5") });
+    await token721.connect(a4).mint({ value: ethers.utils.parseEther("0.5") });
     await token721.connect(a1).approve(a2.address, 1);
     await token721.connect(a2).approve(a3.address, 2);
     await token721.connect(a3).approve(a4.address, 3);
@@ -189,10 +189,10 @@ describe("SourceNFT", function () {
   //test safeTransferFrom
   it("Should work safeTransferFrom", async function () {
     await token721.setMintable(true);
-    await token721.connect(a1).mint();
-    await token721.connect(a2).mint();
-    await token721.connect(a3).mint();
-    await token721.connect(a4).mint();
+    await token721.connect(a1).mint({ value: ethers.utils.parseEther("0.5") });
+    await token721.connect(a2).mint({ value: ethers.utils.parseEther("0.5") });
+    await token721.connect(a3).mint({ value: ethers.utils.parseEther("0.5") });
+    await token721.connect(a4).mint({ value: ethers.utils.parseEther("0.5") });
     await token721.connect(a1)["safeTransferFrom(address,address,uint256)"](a1.address, a2.address, 1);
     expect(await token721.ownerOf(1)).to.equal(a2.address);
     await token721.connect(a2)["safeTransferFrom(address,address,uint256)"](a2.address, a3.address, 2);
@@ -206,10 +206,10 @@ describe("SourceNFT", function () {
   //test safeTransferFrom with data
   it("Should work safeTransferFrom with data", async function () {
     await token721.setMintable(true);
-    await token721.connect(a1).mint();
-    await token721.connect(a2).mint();
-    await token721.connect(a3).mint();
-    await token721.connect(a4).mint();
+    await token721.connect(a1).mint({ value: ethers.utils.parseEther("0.5") });
+    await token721.connect(a2).mint({ value: ethers.utils.parseEther("0.5") });
+    await token721.connect(a3).mint({ value: ethers.utils.parseEther("0.5") });
+    await token721.connect(a4).mint({ value: ethers.utils.parseEther("0.5") });
     await token721.connect(a1)["safeTransferFrom(address,address,uint256,bytes)"](a1.address, a2.address, 1, "0x");
     expect(await token721.ownerOf(1)).to.equal(a2.address);
     await token721.connect(a2)["safeTransferFrom(address,address,uint256,bytes)"](a2.address, a3.address, 2, "0x");
@@ -231,10 +231,10 @@ describe("SourceNFT", function () {
   // test onERC721Received
   it("Should work onERC721Received", async function () {
     await token721.setMintable(true);
-    await token721.connect(a1).mint();
-    await token721.connect(a2).mint();
-    await token721.connect(a3).mint();
-    await token721.connect(a4).mint();
+    await token721.connect(a1).mint({ value: ethers.utils.parseEther("0.5") });
+    await token721.connect(a2).mint({ value: ethers.utils.parseEther("0.5") });
+    await token721.connect(a3).mint({ value: ethers.utils.parseEther("0.5") });
+    await token721.connect(a4).mint({ value: ethers.utils.parseEther("0.5") });
     await token721.connect(a1).setApprovalForAll(a2.address, true);
     await token721.connect(a2).setApprovalForAll(a3.address, true);
     await token721.connect(a3).setApprovalForAll(a4.address, true);
@@ -249,7 +249,7 @@ describe("SourceNFT", function () {
   // addNumber revet test tokenId must be exist and  Number is already 10
   it("Should work addNumber revet test", async function () {
     await token721.setMintable(true);
-    await token721.connect(a1).mint();
+    await token721.connect(a1).mint({ value: ethers.utils.parseEther("0.5") });
     await expect(token721.connect(a1).addNumber(2, { value: ethers.utils.parseEther("0.5") })).to.be.revertedWith("tokenId must be exist");
     for(let i = 0; i < 9; i++) {
       await token721.connect(a1).addNumber(1, { value: ethers.utils.parseEther("0.5") });
@@ -260,7 +260,7 @@ describe("SourceNFT", function () {
   // decreaseNumber revet test tokenId must be exist and  Number is already 0
   it("Should work decreaseNumber revet test", async function () {
     await token721.setMintable(true);
-    await token721.connect(a1).mint();
+    await token721.connect(a1).mint({ value: ethers.utils.parseEther("0.5") });
     await expect(token721.connect(a1).decreaseNumber(2, { value: ethers.utils.parseEther("0.5") })).to.be.revertedWith("tokenId must be exist");
     await token721.connect(a1).decreaseNumber(1, { value: ethers.utils.parseEther("0.5") });
     await expect(token721.connect(a1).decreaseNumber(1, { value: ethers.utils.parseEther("0.5") })).to.be.revertedWith("Number is already 0");

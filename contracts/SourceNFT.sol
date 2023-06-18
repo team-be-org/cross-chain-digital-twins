@@ -9,6 +9,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "./ERC4906.sol";
 import "./interfaces/ISourceNFTMetadata.sol";
 import "./lzApp/NonblockingLzApp.sol";
+import "hardhat/console.sol";
 
 contract SourceNFT is ERC721, ERC4906, Ownable, NonblockingLzApp {
     using Counters for Counters.Counter;
@@ -18,7 +19,6 @@ contract SourceNFT is ERC721, ERC4906, Ownable, NonblockingLzApp {
     uint256 private MAX_SUPPLY = 100;
     uint256 private MAX_AL_SUPPLY = 100;
     uint16 dstChainId = 10121; //etheream goerli chain id
-    address distAddress;
 
     mapping(uint256 => uint256) private myNumber;
     bool private mintable;
@@ -32,17 +32,31 @@ contract SourceNFT is ERC721, ERC4906, Ownable, NonblockingLzApp {
         dstChainId = _dstChainId;
     }
 
-    function setDistAddress(address _distAddress) public onlyOwner {
-        distAddress = _distAddress;
-    }
-
     // lzApp
     function _nonblockingLzReceive(
-        uint16,
-        bytes memory,
-        uint64,
-        bytes memory
+        uint16, // _srcChainId
+        bytes memory, // _srcAddress
+        uint64, // _nonce
+        bytes memory _payload
     ) internal override {}
+
+    /// @dev sendCurrentNumberInfo
+    /// @param tokenId token id
+    function sendChangeInfo(uint256 tokenId) internal {
+        bytes memory encodedData = abi.encode(
+            tokenId,
+            myNumber[tokenId],
+            ownerOf(tokenId)
+        );
+        _lzSend(
+            dstChainId,
+            encodedData,
+            payable(msg.sender),
+            address(0x0),
+            bytes(""),
+            msg.value
+        );
+    }
 
     function mint() public payable returns (uint256) {
         require(mintable, "Mint is not Started");
@@ -52,32 +66,8 @@ contract SourceNFT is ERC721, ERC4906, Ownable, NonblockingLzApp {
         uint256 newItemId = currentTokenId.current();
         _safeMint(msg.sender, newItemId);
         myNumber[newItemId] = 1;
+        //sendChangeInfo(newItemId);
         return newItemId;
-    }
-
-    /// @dev ownerMint
-    /// @param recipient address of recipient
-    function ownerMint(address recipient) public onlyOwner returns (uint256) {
-        require(currentTokenId.current() < MAX_SUPPLY, "Mint limit exceeded");
-
-        currentTokenId.increment();
-        uint256 newItemId = currentTokenId.current();
-        _safeMint(recipient, newItemId);
-        myNumber[newItemId] = 1;
-        return newItemId;
-    }
-
-    /// @dev sendCurrentNumber
-    /// @param tokenId token id
-    function sendCurrentNumner(uint256 tokenId) internal {
-        _lzSend(
-            dstChainId,
-            abi.encodeWithSignature("number", tokenId, myNumber[tokenId]),
-            payable(msg.sender),
-            distAddress,
-            bytes(""),
-            msg.value
-        );
     }
 
     /// @dev add Number metadata for specific token id
@@ -89,7 +79,7 @@ contract SourceNFT is ERC721, ERC4906, Ownable, NonblockingLzApp {
         emit MetadataUpdate(_tokenId);
 
         //send info to other chain
-        sendCurrentNumner(_tokenId);
+        sendChangeInfo(_tokenId);
     }
 
     /// @dev decrease Number metadata for specific token id
@@ -101,37 +91,12 @@ contract SourceNFT is ERC721, ERC4906, Ownable, NonblockingLzApp {
         emit MetadataUpdate(_tokenId);
 
         //send info to other chain
-        sendCurrentNumner(_tokenId);
+        sendChangeInfo(_tokenId);
     }
 
     ///@dev get number metadata of Token Id
     function getNumber(uint256 _tokenId) public view returns (uint256) {
         return myNumber[_tokenId];
-    }
-
-    function transferFrom(
-        address from,
-        address to,
-        uint256 tokenId
-    ) public override {
-        super.transferFrom(from, to, tokenId);
-    }
-
-    function safeTransferFrom(
-        address from,
-        address to,
-        uint256 tokenId
-    ) public override {
-        super.safeTransferFrom(from, to, tokenId);
-    }
-
-    function safeTransferFrom(
-        address from,
-        address to,
-        uint256 tokenId,
-        bytes memory data
-    ) public override {
-        super.safeTransferFrom(from, to, tokenId, data);
     }
 
     /// @dev get metadata for specific token id
