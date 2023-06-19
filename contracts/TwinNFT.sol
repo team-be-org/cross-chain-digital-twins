@@ -19,7 +19,7 @@ contract TwinNFT is ERC721, ERC4906, Ownable, NonblockingLzApp {
         address _endpoint,
         address _sourceNFTImageAddress,
         uint16 _dstChainId
-    ) ERC721("SourceNFT", "SNFT") NonblockingLzApp(_endpoint) {
+    ) ERC721("TwinNFT", "TNFT") NonblockingLzApp(_endpoint) {
         sourceNFTMetadata = ISourceNFTMetadata(_sourceNFTImageAddress);
         dstChainId = _dstChainId;
     }
